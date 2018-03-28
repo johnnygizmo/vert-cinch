@@ -64,7 +64,7 @@ from bpy.props import (
 class VertCinch(bpy.types.Operator):
     """Tooltip"""
     bl_idname = "mesh.vert_cinch"
-    bl_label = "Pull Selected Verts Together"
+    bl_label = "Vertex Cinch"
     bl_options = {'REGISTER', 'UNDO'}
     
     pairs    = BoolProperty(
