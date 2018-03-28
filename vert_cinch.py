@@ -20,7 +20,7 @@ bl_info = {
     "name": "VertCinch",
     "author": "Johnny Matthews",
     "version": (1, 0, 0),
-    "blender": (2, 79, 1),
+    "blender": (2, 79, 0),
     "location": "View3D > Toolbar and View3D > Specials (W-key)",
     "warning": "",
     "description": "Move selected verts toward each other. To last selected or in Pairs",
