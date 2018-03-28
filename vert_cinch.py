@@ -67,6 +67,9 @@ class VertCinch(bpy.types.Operator):
     bl_label = "Vertex Cinch"
     bl_options = {'REGISTER', 'UNDO'}
     
+
+### TODO - Add a menu of Pairs, To Last, To First, Strips
+
     pairs    = BoolProperty(
         name = "Cinch Pairs",
         description = "Cinch every other selected vert",
