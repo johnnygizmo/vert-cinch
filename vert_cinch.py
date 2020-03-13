@@ -19,11 +19,11 @@
 bl_info = {
     "name": "VertCinch",
     "author": "Johnny Matthews",
-    "version": (1, 0, 0),
-    "blender": (2, 79, 0),
-    "location": "View3D > Toolbar and View3D > Specials (W-key)",
+    "version": (1, 1, 0),
+    "blender": (2, 82, 0),
+    "location": "Mesh Edit Context Menu",
     "warning": "",
-    "description": "Move selected verts toward each other. To last selected or in Pairs",
+    "description": "Move selected verts toward each other. In Rows or Pairs",
     "category": "Mesh",
 }
 
@@ -139,7 +139,7 @@ class VertCinch(bpy.types.Operator):
 
 ### TODO - Add a menu of Pairs, To Last, To First, Strips
     
-    grouping = EnumProperty(
+    grouping: EnumProperty(
                 name="Grouping",
                 description="Vertex Grouping",
                 default="PAIRS",
@@ -149,7 +149,7 @@ class VertCinch(bpy.types.Operator):
                     ('CLUSTER','Cluster','Cinch all selected to one vertex')
                 )
     )
-    target = EnumProperty(
+    target: EnumProperty(
                 name="Target",
                 description="Cinch Target",
                 default="FIRST",
@@ -160,7 +160,7 @@ class VertCinch(bpy.types.Operator):
                 )
     )
 
-    distance = FloatProperty(
+    distance: FloatProperty(
             name="Distance",
             description="Cinching Distance",
             min=0.00, max=1.0,
@@ -182,15 +182,12 @@ def menu_func(self, context):
     
 def register():
     bpy.utils.register_class(VertCinch)
-    bpy.types.VIEW3D_MT_edit_mesh_specials.prepend(menu_func)
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(menu_func)
 
 
 def unregister():
     bpy.utils.unregister_class(VertCinch)
-    bpy.types.VIEW3D_MT_edit_mesh_specials.remove(menu_func)
+    bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(menu_func)
 
 if __name__ == "__main__":
     register()
-
-    # test call
-    bpy.ops.mesh.vert_cinch()
