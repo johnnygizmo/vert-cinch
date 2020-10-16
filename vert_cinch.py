@@ -16,12 +16,20 @@
 #
 # ##### END GPL LICENSE BLOCK #####
 
-#Now working with selection by PAIR OR 4 Extremities around 2 open loop (shortest path)
+# Now working with selection by PAIR OR 4 Extremities around 2 open loop (shortest path)
 
+from bpy.props import (
+    BoolProperty,
+    FloatProperty,
+    EnumProperty
+)
+import mathutils
+import bmesh
+import bpy
 bl_info = {
     "name": "VertCinch",
     "author": "Johnny Matthews",
-    "version": (1, 1, 1),
+    "version": (1, 2, 0),
     "blender": (2, 82, 0),
     "location": "Mesh Edit Context Menu",
     "warning": "",
@@ -29,65 +37,28 @@ bl_info = {
     "category": "Mesh",
 }
 
-import bpy
-import bmesh
-import mathutils
-from bpy.props import (
-        BoolProperty,
-        FloatProperty,
-        EnumProperty
-        )
 
-def main(self,context):
+def main(self, context):
     me = bpy.context.object.data
-    bm = bmesh.from_edit_mesh(me) 
+    bm = bmesh.from_edit_mesh(me)
     bm.verts.ensure_lookup_table()
     hist = bm.select_history
     history = hist[:]
-    history0 = hist[:]
-    len_history = len(history)    
-    len_history = len(history)    
+    len_history = len(history)
     sel = [v for v in bm.verts if v.select]
     len_sel = len(sel)
 
-##TODO UPDATE UVS    
-    # uv_layer = bm.loops.layers.uv.verify()
-    # dest = bm.loops.layers.uv.verify()
-    # uv_verts = {}   
-    # for face in bm.faces:
-        # for loop in face.loops:
-            # # uv = loop[uv_lay].uv
-            # if loop.vert not in uv_verts:
-                # uv_verts[loop.vert] = [loop[uv_layer]]
-            # else:
-                # uv_verts[loop.vert].append(loop[uv_layer])
-                
-            # bm.verts.index_update()
-            # bm.verts.ensure_lookup_table()
-
-
-        # layer = bm_to_add.loops.layers.uv.verify()
-        # dest = bm.loops.layers.uv.verify()
-        # for face in bm_to_add.faces:
-            # f = add_face(tuple(bm.verts[i.index + offset] for i in face.verts))
-            # f.material_index = face.material_index
-            # for j, loop in enumerate(face.loops):
-                # f.loops[j][dest].uv = loop[layer].uv
-        # bm.faces.index_update()
-        
-
-
     for item in hist:
         if not isinstance(item, bmesh.types.BMVert):
-            self.report({'ERROR'}, "Select Vertices only") #or BAD SELECTION?
+            self.report({'ERROR'}, "Select Vertices only")  # or BAD SELECTION?
             return {'CANCELLED'}
-        
+
     if len_history == 0:
-        self.report({'ERROR'},"Select verts with Shift")
+        self.report({'ERROR'}, "Select verts with Shift")
         return {'CANCELLED'}
 
     if len_sel != len_history:
-        self.report({'ERROR'},"Select verts with Shift")
+        self.report({'ERROR'}, "Select verts with Shift")
         return {'CANCELLED'}
 
 #--Sequences--#
@@ -99,7 +70,7 @@ def main(self,context):
         for v in bm.verts:
             v.select = False
         bm.select_flush(False)
-        
+
     def path(v1, v2):
         v1.select = True
         v2.select = True
@@ -126,7 +97,6 @@ def main(self,context):
         if self.group != 'PAIRS':
             deselect()
             path_1 = path(history[0], history[1])
-            # if len(path_1) >= :
             sorted_path_1 = sorted_path(path_1, history[0], history[1])
             deselect()
             path_2 = path(history[2], history[3])
@@ -136,142 +106,138 @@ def main(self,context):
             len_history = len(history)
             bm.select_history.clear()
             for v in history:
-                v.select=True
+                v.select = True
                 bm.select_history.add(v)
         else:
             pass
 
-    nf = len(bm.faces)
-    layer = bm.loops.layers.uv.verify()
-    for i, face in enumerate(bm.faces[nf:]):
-        for j, loop in enumerate(face.loops):
-            loop[layer].uv = uvs[i][j]
-
 #--Pairs--#
-    if self.group == 'PAIRS':                
-        idx_last  = len_history-1
-        for i,v in enumerate(history):
+    if self.group == 'PAIRS':
+        idx_last = len_history-1
+        for i, v in enumerate(history):
 
-            if self.target == 'LAST': 
-                if (i % 2) == 0 and i < idx_last:          
-                    v.co = v.co.lerp(history[i+1].co,self.distance)
-            if self.target == 'FIRST': 
-                if (i % 2) == 1 and i <= idx_last:          
-                    v.co = v.co.lerp(history[i-1].co,self.distance)   
-            if self.target == 'MIDDLE': 
+            if self.target == 'LAST':
                 if (i % 2) == 0 and i < idx_last:
-                    center = v.co.lerp(history[i+1].co,0.5)
-                    v.co = v.co.lerp(center,self.distance)   
-                if (i % 2) == 1 and i <= idx_last:   
-                    v.co = v.co.lerp(center,self.distance)
+                    v.co = v.co.lerp(history[i+1].co, self.distance)
+            if self.target == 'FIRST':
+                if (i % 2) == 1 and i <= idx_last:
+                    v.co = v.co.lerp(history[i-1].co, self.distance)
+            if self.target == 'MIDDLE':
+                if (i % 2) == 0 and i < idx_last:
+                    center = v.co.lerp(history[i+1].co, 0.5)
+                    v.co = v.co.lerp(center, self.distance)
+                if (i % 2) == 1 and i <= idx_last:
+                    v.co = v.co.lerp(center, self.distance)
 
-                    
 #--Rows--#
     if self.group == 'ROWS':
         half = len_history // 2
-        
-        if self.target == 'LAST': 
-            for i,v in enumerate(history):
-                if i < half:
-                    v.co = v.co.lerp(history[i+half].co,self.distance)
-        if self.target == 'FIRST': 
-            for i,v in enumerate(history):
-                if i >= half:
-                    v.co = v.co.lerp(history[i-half].co,self.distance)  
 
-        if self.target == 'MIDDLE': 
-            for i,v in enumerate(history):
+        if self.target == 'LAST':
+            for i, v in enumerate(history):
                 if i < half:
-                    center = v.co.lerp(history[i+half].co,0.5)
-                    history[i].co      = history[i].co.lerp(center,self.distance)
-                    history[i+half].co = history[i+half].co.lerp(center,self.distance)                
-            
-#--Cluster--#    
+                    v.co = v.co.lerp(history[i+half].co, self.distance)
+        if self.target == 'FIRST':
+            for i, v in enumerate(history):
+                if i >= half:
+                    v.co = v.co.lerp(history[i-half].co, self.distance)
+
+        if self.target == 'MIDDLE':
+            for i, v in enumerate(history):
+                if i < half:
+                    center = v.co.lerp(history[i+half].co, 0.5)
+                    history[i].co = history[i].co.lerp(center, self.distance)
+                    history[i+half].co = history[i +
+                                                 half].co.lerp(center, self.distance)
+
+#--Cluster--#
     if self.group == 'CLUSTER':
-        idx_last  = len_history-1
-        if self.target == 'FIRST': 
-            for i,v in enumerate(history):
+        idx_last = len_history-1
+        if self.target == 'FIRST':
+            for i, v in enumerate(history):
                 if i != 0:
-                    v.co = v.co.lerp(history[0].co,self.distance)
-        elif self.target == 'LAST':        
-            for i,v in enumerate(history):
+                    v.co = v.co.lerp(history[0].co, self.distance)
+        elif self.target == 'LAST':
+            for i, v in enumerate(history):
                 if i != idx_last:
-                    v.co = v.co.lerp(history[idx_last].co,self.distance)
+                    v.co = v.co.lerp(history[idx_last].co, self.distance)
         elif self.target == "MIDDLE":
             center = mathutils.Vector((0.0, 0.0, 0.0))
-            for i,v in enumerate(history):
+            for i, v in enumerate(history):
                 center = center + v.co
             center.x = center.x / len_history
             center.y = center.y / len_history
             center.z = center.z / len_history
-            for i,v in enumerate(history):
-                v.co = v.co.lerp(center,self.distance)
+            for i, v in enumerate(history):
+                v.co = v.co.lerp(center, self.distance)
 
     if self.merge:
-        if self.distance==1:            
+        if self.distance == 1:
             bmesh.ops.remove_doubles(bm, verts=history, dist=0.0001)
 
-    bm.normal_update()           
-    bmesh.update_edit_mesh(me) 
+    bm.normal_update()
+    bmesh.update_edit_mesh(me)
 
 
-class VertCinch(bpy.types.Operator):
+class Multi_OT_Lerp_Merge(bpy.types.Operator):
     """Tooltip"""
     bl_idname = "mesh.vert_cinch"
     bl_label = "Multi Merge"
     bl_options = {'REGISTER', 'UNDO'}
 
     group: EnumProperty(
-                name="By",
-                description="Vertex group",
-                default="ROWS",
-                items=(
-                    ('ROWS','Rows','Between the 2 rows (after selecting 4 extremities)'),
-                    ('PAIRS','Pairs','Following selected Pairs'),
-                    ('CLUSTER','Every','all selected to first,last,center'),
-                ))
+        name="By",
+        description="Vertex group",
+        default="ROWS",
+        items=(
+                    ('ROWS', 'Rows(default)',
+                     'Between the 2 rows (after selecting 4 extremities)'),
+                    ('PAIRS', 'Pairs', 'Following selected Pairs'),
+                    ('CLUSTER', 'Every', 'all selected to first,last,center'),
+        ))
     target: EnumProperty(
-                name="To",
-                description="Cinch Target",
-                default="MIDDLE",
-                items=(
-                    ('FIRST','At First','Lerp or merge to First Vertex or Row'),
-                    ('MIDDLE','At Center','Lerp or merge to Center'),
-                    ('LAST','At Last','Lerp or merge to Last Vertex or Row'),
-                ))
+        name="At",
+        description="Cinch Target",
+        default="MIDDLE",
+        items=(
+                    ('FIRST', 'First', 'Lerp or merge to First Vertex or Row'),
+                    ('MIDDLE', 'Center', 'Lerp or merge to Center'),
+                    ('LAST', 'Last', 'Lerp or merge to Last Vertex or Row'),
+        ))
     distance: FloatProperty(
-            name="Distance",
-            description="Cinching Distance",
-            min=0, max=1,
-            default=0,
-            )
+        name="Distance",
+        description="Cinching Distance",
+        min=0, max=1,
+        default=0,
+    )
     merge: BoolProperty(
-            name="Merge",
-            description="Merge",
-            default=True,
-            )
+        name="Merge",
+        description="Merge",
+        default=True,
+    )
 
     @classmethod
     def poll(cls, context):
         return context.active_object is not None
 
     def execute(self, context):
-        main(self,context)
+        main(self, context)
         return {'FINISHED'}
 
 
 def menu_func(self, context):
-    self.layout.operator(VertCinch.bl_idname, icon='MESH_DATA')
-    
-    
+    self.layout.operator(Multi_OT_Lerp_Merge.bl_idname, icon='MESH_DATA')
+
+
 def register():
-    bpy.utils.register_class(VertCinch)
+    bpy.utils.register_class(Multi_OT_Lerp_Merge)
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(menu_func)
 
 
 def unregister():
-    bpy.utils.unregister_class(VertCinch)
+    bpy.utils.unregister_class(Multi_OT_Lerp_Merge)
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.append(menu_func)
+
 
 if __name__ == "__main__":
     register()
